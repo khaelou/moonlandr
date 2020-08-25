@@ -14,6 +14,6 @@ It's more than just a Record Label.
 - Random Spotify Account retrieved from remote DB, log in user account using Selenium. (Selenoid Server)
 - Load Target Artist Profile, start discography.
 - Wait 45 seconds to 1 minute before initializing streaming loop. (30 seconds considered a stream)
-- After 45 seconds - 1 minute, Selenium shuffles to next song. (loop)
+- After 45 seconds to 1 minute, Selenium shuffles to next song. (loop)
 - Log account out or quit Selenium session if streaming loop is interrupted. (Session Timeout/Advertisements)
 - Repeat after a set amount of stream iterations. (For example, every 5,000 listens)

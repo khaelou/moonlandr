@@ -9,7 +9,7 @@ It's more than just a Record Label.
 > - Kubernetes. (Production  Cluster Deployment)
 
 ## Behind the Scenes
-- Check remote DB for any available spotify accounts, if none create some accounts.
+- Check remote DB for any available Spotify accounts, if none create some accounts.
 - Creates User Accounts via Spotify, adds accounts to remote DB. (ReCaptcha Bypass Embedded)
 - Random Spotify Account retrieved from remote DB, log in using through Selenoid. (Selenium)
 - Load Target Artist Profile, start discography.

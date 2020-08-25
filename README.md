@@ -8,7 +8,7 @@ It's more than just a Record Label.
 > - 2Captcha API. (ReCaptcha v2 + v3 Solving)
 > - Kubernetes. (Production  Cluster Deployment)
 
-## Behind the Scenes
+## Logic Breakdown
 - Check remote DB for any available Spotify accounts, if none create some accounts.
 - Creates User Accounts via Spotify, adds accounts to remote DB. (ReCaptcha Bypass Embedded)
 - Random Spotify Account retrieved from remote DB, log in user account using Selenium. (Selenoid Server)

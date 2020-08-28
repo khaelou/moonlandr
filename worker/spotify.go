@@ -18,53 +18,53 @@ import (
 )
 
 var (
-	green 						= color.New(color.FgHiGreen, color.Bold)
-	cyan 						= color.New(color.FgHiCyan, color.Bold)
-	yellow 						= color.New(color.FgYellow, color.Bold)
-	red 						= color.New(color.FgRed, color.Bold)
-	magenta 					= color.New(color.FgMagenta, color.Bold)
+	green 					= color.New(color.FgHiGreen, color.Bold)
+	cyan 					= color.New(color.FgHiCyan, color.Bold)
+	yellow 					= color.New(color.FgYellow, color.Bold)
+	red 					= color.New(color.FgRed, color.Bold)
+	magenta 				= color.New(color.FgMagenta, color.Bold)
 
 	accountsRequired			int
 	streamIterations			int
 	playbackWaitTime			int
-	host						string
+	host					string
 	captchaCallback				string
-	enableVNC					bool
-	enableV3					bool
+	enableVNC				bool
+	enableV3				bool
 
 	UserIdSpotify				int
 	UserEmailSpotify 			string
-	UserPasswordSpotify 		string
-	UserGenEmailSpotifyGlbl		string
-	UserGenPasswordSpotifyGlbl	string
+	UserPasswordSpotify 			string
+	UserGenEmailSpotifyGlbl			string
+	UserGenPasswordSpotifyGlbl		string
 
-	ArtistProfileSpotify		string
+	ArtistProfileSpotify			string
 	ArtistNameSpotify			string
 	mlPlaybackTime				string
 
 	accountsInDB				= 0
-	accountCreationCount		= accountsInDB + 1
-	accountCreationErrorCount	= 0
-	misplacedTrackCheckFail     = 0
-	shuffleIterationSpotify		= 1
-	shuffleInvalidations		= 0
+	accountCreationCount			= accountsInDB + 1
+	accountCreationErrorCount		= 0
+	misplacedTrackCheckFail     		= 0
+	shuffleIterationSpotify			= 1
+	shuffleInvalidations			= 0
 	estimatedFigCount			= 0.00000
 
 	// Simply modify attributes here if Spotify where to make HTML changes
 	incorrectLoginAlert			= "p[class='alert alert-warning']"
 	artistNameLabel				= "h1[@class='_77ccab85bb794646035d39a339c41781-scss']"
-	followBtn				    = "button[class='b49b68b14a1771a4cb36313f2b350e84-scss']"
-	unfollowBtn					= "button[class='b49b68b14a1771a4cb36313f2b350e84-scss _2b37b3630aee3cbfc97689b5af341d60-scss']"
+	followBtn				= "button[class='b49b68b14a1771a4cb36313f2b350e84-scss']"
+	unfollowBtn				= "button[class='b49b68b14a1771a4cb36313f2b350e84-scss _2b37b3630aee3cbfc97689b5af341d60-scss']"
 	disabledSkipBtn				= "button[class='control-button spoticon-skip-forward-16 control-button--disabled']"
-	playBtn					    = "button[class='control-button spoticon-play-16 control-button--circled']"
+	playBtn					= "button[class='control-button spoticon-play-16 control-button--circled']"
 	loadingPlayBtn				= "button[class='control-button spoticon-play-16 control-button--circled control-button--loading']"
-	pauseBtn					= "button[class='control-button spoticon-pause-16 control-button--circled']"
-	skipBtn						= "button[class='control-button spoticon-skip-forward-16']"
+	pauseBtn				= "button[class='control-button spoticon-pause-16 control-button--circled']"
+	skipBtn					= "button[class='control-button spoticon-skip-forward-16']"
 	playbackTimeDiv				= "div[class='playback-bar__progress-time e80fc2e59729be32410c909c47ef87a3-scss']"
 	trackTitleDiv				= "div[class='c319b99793755cc3bba709fe1b1fda42-scss ellipsis-one-line']"
 	artistNameDiv				= "div[class='_44843c8513baccb36b3fa171573a128f-scss ellipsis-one-line']"
-	accMenuBtn					= "button[class='_34098cfd13d48e2910679f35aea2c377-scss']"
-	logoutBtn					= "button[class='_5d8857b271ece35ed4dd191b5b15f48e-scss']"
+	accMenuBtn				= "button[class='_34098cfd13d48e2910679f35aea2c377-scss']"
+	logoutBtn				= "button[class='_5d8857b271ece35ed4dd191b5b15f48e-scss']"
 	robotErrorLabel				= "label[class='has-error']"
 	recaptchaError				= "div[class='FormHelpText__Help-e48exm-0 doEKrx InputErrorMessage__Container-tliowl-0 ciTMoJ']"
 	yourLibraryNavBtn			= "div[class='navBar-link-text-with-icon-wrapper']"
@@ -77,7 +77,7 @@ var (
 
 const (
 	port            			= 4444 // 4444 (Selenoid Port)
-	SpotifyRegistrationURL		= "https://www.spotify.com/us/signup/?forward_url=https%3A%2F%2Fopen.spotify.com%2F" // For account creation
+	SpotifyRegistrationURL			= "https://www.spotify.com/us/signup/?forward_url=https%3A%2F%2Fopen.spotify.com%2F" // For account creation
 )
 
 func initArtistSpotify() {

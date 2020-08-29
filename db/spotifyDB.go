@@ -13,8 +13,8 @@ import (
 const (
 	SpotifyDBHost  			= "remotemysql.com"
 	SpotifyDBPort   		= ""
-	SpotifyDBUser   		= "HsmZHQm9du"
-	SpotifyDBPass   		= "C7VvTeX7jI"
+	SpotifyDBUser   		= ""
+	SpotifyDBPass   		= ""
 	SpotifyDBName   		= "HsmZHQm9du"
 )
 

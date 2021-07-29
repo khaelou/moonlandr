@@ -46,6 +46,7 @@ var (
 	ArtistNameSpotify    string
 	mlPlaybackTime       string
 
+	holdItTime                = time.Duration(2)
 	accountsInDB              = 0
 	accountCreationCount      = accountsInDB + 1
 	accountCreationErrorCount = 0
@@ -63,7 +64,7 @@ var (
 	startDiscographyBtn = "//button[@class='_8e7d398e09c25b24232d92aac8a15a81-scss e8b2fe03d4e4726484b879ed8ff6f096-scss']"
 	playBtn             = "//button[@data-testid='play-button' and not(@disabled)]"
 	loadingPlayBtn      = "//button[@class='_82ba3fb528bb730b297a91f46acd37a3-scss']"
-	//pauseBtn            = "//button[@class='_82ba3fb528bb730b297a91f46acd37a3-scss' or @title='Pause' and not(@disabled)]"
+	//pauseBtn           		= "//button[@class='_82ba3fb528bb730b297a91f46acd37a3-scss' or @title='Pause' and not(@disabled)]"
 	skipBtn         = "//button[@class='bf01b0d913b6bfffea0d4ffd7393c4af-scss']"
 	disabledSkipBtn = "//button[@class='bf01b0d913b6bfffea0d4ffd7393c4af-scss']"
 	favTrackBtn     = "//button[@class='_07bed3a434fa59aa1852a431bf2e19cb-scss control-button control-button-heart']"
@@ -74,8 +75,8 @@ var (
 	accMenuBtn      = "//button[@class='_3e75c7f07bdce28b37b45a5cd74ff371-scss']"
 	logoutBtn       = "//button[@class='d2a8e42f26357f2d21c027f30d93fb64-scss']"
 	robotErrorLabel = "div[@aria-label='Error indicator']"
-	//premiumModal      = "//div[@class='GenericModal GenericModal--animated _9503df1e6a7a900ae17aeba014203575-scss GenericModal--afterOpen']"
-	//premiumModalBtn   = "//button @class='Button-sc-1dqy6lx-0 cLnKJb _1202545091238e5aa5b47b15ab6786fe-scss e810fe421a0b204c0de3771cf655e135-scss']"
+	//premiumModal     			= "//div[@class='GenericModal GenericModal--animated _9503df1e6a7a900ae17aeba014203575-scss GenericModal--afterOpen']"
+	//premiumModalBtn   		= "//button @class='Button-sc-1dqy6lx-0 cLnKJb _1202545091238e5aa5b47b15ab6786fe-scss e810fe421a0b204c0de3771cf655e135-scss']"
 
 	twoCaptchaAPIKey string
 	v2ReCaptchaKey   string // Pulled from 'SpotifyRegistrationURL'
@@ -277,7 +278,7 @@ func loginProcessSpotify(id int, email, password string) {
 }
 
 func credentialCheckSpotify(wd selenium.WebDriver) {
-	time.Sleep(3 * time.Second) // Wait
+	time.Sleep(holdItTime * time.Second) // Wait
 
 	// Check for login error
 	_, err := wd.FindElement(selenium.ByXPATH, incorrectLoginAlert)
@@ -291,7 +292,7 @@ func credentialCheckSpotify(wd selenium.WebDriver) {
 		} else {
 			_, _ = cyan.Println("\n\tUser successfully authenticated!\n")
 
-			time.Sleep(5 * time.Second) // Wait
+			time.Sleep(holdItTime * time.Second) // Wait
 
 			// Loading Play button check
 			_, err := wd.FindElement(selenium.ByXPATH, loadingPlayBtn)
@@ -350,7 +351,7 @@ func followArtistSpotify(wd selenium.WebDriver) {
 		}
 	}()
 
-	time.Sleep(3 * time.Second) // Wait
+	time.Sleep(holdItTime * time.Second) // Wait
 
 	followBtn, err := wd.FindElement(selenium.ByXPATH, followBtn)
 	if err != nil {
@@ -414,7 +415,7 @@ func startDiscographySpotify(wd selenium.WebDriver) {
 		}
 	}()
 
-	time.Sleep(3 * time.Second) // Wait
+	time.Sleep(holdItTime * time.Second) // Wait
 
 	// Pause button check
 	_, err := wd.ExecuteScript("document.getElementsByClassName('_8e7d398e09c25b24232d92aac8a15a81-scss e8b2fe03d4e4726484b879ed8ff6f096-scss')[0]", nil)
@@ -428,6 +429,9 @@ func startDiscographySpotify(wd selenium.WebDriver) {
 			_, err = wd.ExecuteScript("document.getElementsByClassName('contentSpacing _4c3b6e4e88112fc8ef88512cbe7521ed-scss da51a6e223c7200d373a2fd0614d7c33-scss')[0].remove();", nil)
 			if err != nil {
 				_, _ = red.Println("\n\tObsurity #2 not removed:", err)
+
+				wd.Refresh()
+				startDiscographySpotify(wd)
 			} else {
 				if err := wd.Wait(conditions.ElementIsLocatedAndVisible(selenium.ByXPATH, startDiscographyBtn)); err != nil {
 					log.Println("Discography start button not located:", err)
@@ -492,7 +496,7 @@ func shuffleSpotify(wd selenium.WebDriver) {
 		}
 	}()
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(holdItTime * time.Second)
 
 	// Advertisement check
 	_, err := wd.FindElement(selenium.ByXPATH, disabledSkipBtn)
@@ -688,6 +692,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 			log.Println("Email entered. (" + UserGenEmailSpotify + ")")
 		}
 
+		time.Sleep(holdItTime * time.Second) // Wait
+
 		// Confirm Email
 		emailConfirmElem, err := wd.FindElement(selenium.ByID, "confirm")
 		if err != nil {
@@ -705,6 +711,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 			log.Println("Confirm Email entered.")
 		}
 
+		time.Sleep(holdItTime * time.Second) // Wait
+
 		// Password
 		pwElem, err := wd.FindElement(selenium.ByID, "password")
 		if err != nil {
@@ -716,6 +724,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 		} else {
 			log.Println("Password entered. (" + UserGenPasswordSpotify + ")")
 		}
+
+		time.Sleep(holdItTime * time.Second) // Wait
 
 		// Display Name
 		nameElem, err := wd.FindElement(selenium.ByID, "displayname")
@@ -729,6 +739,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 			log.Println("Display Name entered.")
 		}
 
+		time.Sleep(holdItTime * time.Second) // Wait
+
 		// DOB Selection
 		monthElem, err := wd.FindElement(selenium.ByID, "month")
 		if err != nil {
@@ -741,6 +753,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 			log.Println("Month entered.")
 		}
 
+		time.Sleep(holdItTime * time.Second) // Wait
+
 		dayElem, err := wd.FindElement(selenium.ByID, "day")
 		if err != nil {
 			panic(err)
@@ -751,6 +765,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 		} else {
 			log.Println("Day entered.")
 		}
+
+		time.Sleep(holdItTime * time.Second) // Wait
 
 		yearElem, err := wd.FindElement(selenium.ByID, "year")
 		if err != nil {
@@ -763,7 +779,7 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 			log.Println("Year entered.")
 		}
 
-		time.Sleep(3 * time.Second) // Wait
+		time.Sleep(holdItTime * time.Second) // Wait
 
 		// Scroll Down
 		scrollDown(wd)
@@ -812,6 +828,7 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 		if err != nil {
 			_, _ = red.Println("\n\tObsurity `onetrust-consent-sdk` not removed", err)
 		} else {
+			time.Sleep(holdItTime * time.Second) // Wait
 			v2Solver(wd)
 		}
 	}
@@ -988,7 +1005,7 @@ func registrationCheckSpotify(wd selenium.WebDriver) {
 			_, _ = red.Println("Authentication Failure:", err)
 			wd.Quit()
 
-			time.Sleep(5 * time.Minute) // Delay Wait
+			time.Sleep(2 * time.Minute) // Delay Wait
 			restartSpotify(wd)
 		} else {
 			_, err := wd.FindElement(selenium.ByXPATH, accMenuBtn)

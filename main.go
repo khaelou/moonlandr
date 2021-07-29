@@ -18,6 +18,8 @@ var (
 	red 			= color.New(color.FgRed, color.Bold)
 	magenta 		= color.New(color.FgMagenta, color.Bold)
 	white			= color.New(color.FgWhite, color.Bold)
+
+	workers			= [1]string{"Spotify"}
 )
 
 func main() {
@@ -27,7 +29,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "Moonlandr"
 	app.Description = "It's more than just a Record Label."
-	app.Version = "1.1.1"
+	app.Version = "2.0.0"
 	app.Flags = []cli.Flag {
 		cli.StringFlag{
 			Name: "deploy",
@@ -94,7 +96,7 @@ func main() {
 
 // Automatically Deploy a Service Worker
 func autoWorkerDeployer() {
-	platformAmount := 1 // # of Supported Platforms
+	platformAmount := len(workers) + 1 // # of Supported Platforms
 
 	rand.Seed(time.Now().UTC().UnixNano())
 	min := 1
@@ -112,7 +114,7 @@ func autoWorkerDeployer() {
 			Worker.SpotifyInit()
 			break
 		default:
-			_, _ = red.Printf("\n\t! ] NO WORKER SELECTED, LAUNCHING SPOTIFY WORKER!\n\n")
+			_, _ = red.Printf("\n\t! ] NO WORKER SELECTED!\n\n")
 
 			Worker.SpotifyInit()
 	}

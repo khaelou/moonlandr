@@ -6,19 +6,19 @@ import (
 	"log"
 	"math/rand"
 	"time"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
-)
-
-const (
-	SpotifyDBHost  			= "remotemysql.com"
-	SpotifyDBPort   		= ""
-	SpotifyDBUser   		= ""
-	SpotifyDBPass   		= ""
-	SpotifyDBName   		= "HsmZHQm9du"
+	godotenv "github.com/joho/godotenv"
 )
 
 var (
+	SpotifyDBHost  			string
+	SpotifyDBPort   		string
+	SpotifyDBUser   		string
+	SpotifyDBPass   		string
+	SpotifyDBName   		string
+
 	settingsSpotify			[]SpotifyConfigSettings
 
 	settingsId				int
@@ -37,6 +37,7 @@ var (
 	spotifyEmail 			string
 	spotifyPassword 		string
 
+	trackCredDel			int
 )
 
 type SpotifyConfigSettings struct {
@@ -58,6 +59,17 @@ type SpotifyCredentials struct {
 }
 
 func PullSpotifySettingsConnectDB() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	SpotifyDBHost = os.Getenv("REMOTE_DB_HOST")
+	SpotifyDBPort = os.Getenv("REMOTE_DB_PORT")
+	SpotifyDBUser = os.Getenv("REMOTE_DB_USER")
+	SpotifyDBPass = os.Getenv("REMOTE_DB_PASS")
+	SpotifyDBName = os.Getenv("REMOTE_DB_NAME")
+
 	db, err := sql.Open("mysql", SpotifyDBUser+":"+SpotifyDBPass+"@tcp("+SpotifyDBHost+SpotifyDBPort+")/"+SpotifyDBName)
 	if err != nil {
 		log.Fatal("Cannot open remote DB connection", err)
@@ -155,7 +167,7 @@ func SpotifyAccountsConnectDB() {
 func ReturnNumSpotifyAccounts() int {
 	db, err := sql.Open("mysql", SpotifyDBUser+":"+SpotifyDBPass+"@tcp("+SpotifyDBHost+SpotifyDBPort+")/"+SpotifyDBName)
 	if err != nil {
-		log.Fatal("Cannot open remote DB connection", err)
+		log.Fatal("Cannot open remote DB connection to `spotifyAccounts`", err)
 	}
 
 	// Fetch number of rows in Spotify Accounts table
@@ -186,11 +198,29 @@ func DeleteSpotifyAccount(userId int) {
 		log.Fatal("Cannot open remote DB connection", err)
 	}
 
+	trackCredDel += 1
+	//fmt.Println("\t>> TRACK cred DELETE", trackCredDel)
+
+	if trackCredDel >= 5 {
+		fmt.Println("\t>> DB sanitization on `spotifyAccounts` initialized!")
+
+		deleteUsers, err := db.Query(fmt.Sprintf("TRUNCATE TABLE spotifyAccounts"))
+		if err != nil {
+			log.Fatal(err)
+		} else {
+			log.Println("All credentials removed from `spotifyAccounts` DB!")
+		}
+
+		defer deleteUsers.Close()
+
+		trackCredDel = 0
+	}
+
 	deleteUser, err := db.Query(fmt.Sprintf("DELETE FROM spotifyAccounts WHERE spotifyAccounts.id = %d", userId))
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("Account removed from DB!")
+		log.Println("Credentials removed from `spotifyAccounts` DB!")
 	}
 
 	defer deleteUser.Close()
@@ -199,12 +229,12 @@ func DeleteSpotifyAccount(userId int) {
 func AddSpotifyAccount(email, password string) {
 	db, err := sql.Open("mysql", SpotifyDBUser+":"+SpotifyDBPass+"@tcp("+SpotifyDBHost+SpotifyDBPort+")/"+SpotifyDBName)
 	if err != nil {
-		log.Fatal("Cannot open remote DB connection", err)
+		log.Fatal("Cannot open remote DB connection to `spotifyAccounts`", err)
 	}
 
 	insert, err := db.Query("INSERT INTO spotifyAccounts(email, password) VALUES (?, ?)", email, password)
 	if err != nil {
-		log.Fatalln("Can't add credentials to database!", err)
+		log.Fatalln("Can't add credentials to remote DB `spotifyAccounts`!", err)
 	}
 
 	defer insert.Close()

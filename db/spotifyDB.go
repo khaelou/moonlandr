@@ -5,57 +5,57 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"time"
 	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	godotenv "github.com/joho/godotenv"
 )
 
 var (
-	SpotifyDBHost  			string
-	SpotifyDBPort   		string
-	SpotifyDBUser   		string
-	SpotifyDBPass   		string
-	SpotifyDBName   		string
+	SpotifyDBHost string
+	SpotifyDBPort string
+	SpotifyDBUser string
+	SpotifyDBPass string
+	SpotifyDBName string
 
-	settingsSpotify			[]SpotifyConfigSettings
+	settingsSpotify []SpotifyConfigSettings
 
-	settingsId				int
-	accountsRequired		int
-	streamIterations		int
-	playbackWaitTime		int
-	selenoidHost			string
-	selenoidHost2			string
-	reCaptchaCallback		string
-	enableVNC				bool
-	enableV3				bool
+	settingsId        int
+	accountsRequired  int
+	streamIterations  int
+	playbackWaitTime  int
+	selenoidHost      string
+	selenoidHost2     string
+	reCaptchaCallback string
+	enableVNC         bool
+	enableV3          bool
 
-	credentialsSpotify 		[]SpotifyCredentials
+	credentialsSpotify []SpotifyCredentials
 
-	spotifyId 				int
-	spotifyEmail 			string
-	spotifyPassword 		string
+	spotifyId       int
+	spotifyEmail    string
+	spotifyPassword string
 
-	trackCredDel			int
+	trackCredDel int
 )
 
 type SpotifyConfigSettings struct {
-	id 						int
-	accountsRequired		int
-	streamIterations		int
-	selenoidHost			string
-	selenoidHost2			string
-	playbackWaitTime		int
-	reCaptchaCallback		string
-	enableVNC				bool
-	enableV3				bool
+	id                int
+	accountsRequired  int
+	streamIterations  int
+	selenoidHost      string
+	selenoidHost2     string
+	playbackWaitTime  int
+	reCaptchaCallback string
+	enableVNC         bool
+	enableV3          bool
 }
 
 type SpotifyCredentials struct {
-	id       				int
-	email    				string
-	password 				string
+	id       int
+	email    string
+	password string
 }
 
 func PullSpotifySettingsConnectDB() {
@@ -183,7 +183,7 @@ func ReturnNumSpotifyAccounts() int {
 
 func checkCountSpotify(rows *sql.Rows) (count int) {
 	for rows.Next() {
-		err:= rows.Scan(&count)
+		err := rows.Scan(&count)
 		if err != nil {
 			log.Fatal(err)
 		}

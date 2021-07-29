@@ -4,9 +4,9 @@ package Fetch
 import Database "moonlandr/db"
 
 var (
-	SpotifyId			int
-	SpotifyEmail 		string
-	SpotifyPassword 	string
+	SpotifyId       int
+	SpotifyEmail    string
+	SpotifyPassword string
 )
 
 func Creds() {

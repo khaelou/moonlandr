@@ -46,7 +46,7 @@ var (
 	ArtistNameSpotify    string
 	mlPlaybackTime       string
 
-	holdItTime                = time.Duration(2)
+	holdItTime                = time.Duration(4)
 	accountsInDB              = 0
 	accountCreationCount      = accountsInDB + 1
 	accountCreationErrorCount = 0
@@ -107,7 +107,7 @@ func restartSpotify(wd selenium.WebDriver) {
 	SpotifyInit()
 }
 
-func hostBalancer() {
+func hostBalancerSpotify() {
 	host1 := Database.ReturnSelenoidHost()  // Location 1
 	host2 := Database.ReturnSelenoidHost2() // Location 2
 
@@ -147,7 +147,7 @@ func SpotifyInit() {
 	enableVNC = Database.ReturnEnableVNC()
 	enableV3 = Database.ReturnEnableV3()
 
-	hostBalancer() // Used to select a Selenoid Host, better manage CPU
+	hostBalancerSpotify() // Used to select a Selenoid Host, better manage CPU
 
 	// Check if enough accounts are in remote DB
 	if accountsInDB >= accountsRequired {
@@ -157,8 +157,8 @@ func SpotifyInit() {
 		initArtistSpotify()                                                       // Pull credentials from remote DB
 		loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify) // Authenticate Spotify account
 	} else {
-		fmt.Println("\n\tBrowser >>", "Firefox 89.0")
-		caps := selenium.Capabilities{"browserName": "firefox", "version": "89.0", "enableVNC": enableVNC}
+		fmt.Println("\n\tBrowser >>", "Firefox 90.0")
+		caps := selenium.Capabilities{"browserName": "firefox", "version": "90.0", "enableVNC": enableVNC}
 		firefoxCaps := firefox.Capabilities{
 			Args: []string{
 				"--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4324.104 Safari/537.36",
@@ -365,11 +365,12 @@ func followArtistSpotify(wd selenium.WebDriver) {
 	}
 }
 
-func favoriteTrack(wd selenium.WebDriver) {
+func favoriteTrackSpotify(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
-			_, _ = red.Println("(favoriteTrack):", r)
+			_, _ = red.Println("(favoriteTrackSpotify): Like button not visible.")
+			_ = r
 		}
 	}()
 
@@ -553,12 +554,12 @@ func shuffleSpotify(wd selenium.WebDriver) {
 						artistName, _ := artistNameDiv.Text()
 
 						if artistName != ArtistNameSpotify {
-							log.Printf("[✓] Track '%s' by '%s' playback stopped at %s. [~$%s]", trackTitle, artistName, mlPlaybackTime, pricePerStreamGen(0.00331, 0.00437))
+							log.Printf("[✓] Track '%s' by '%s' playback stopped at %s. [~$%s]", trackTitle, artistName, mlPlaybackTime, pricePerStreamGenSpotify(0.00331, 0.00437))
 						} else {
-							log.Printf("[✓] Track '%s' by '%s' playback stopped at %s. [~$%s]", trackTitle, ArtistNameSpotify, mlPlaybackTime, pricePerStreamGen(0.00331, 0.00437))
+							log.Printf("[✓] Track '%s' by '%s' playback stopped at %s. [~$%s]", trackTitle, ArtistNameSpotify, mlPlaybackTime, pricePerStreamGenSpotify(0.00331, 0.00437))
 						}
 
-						estimatedRoyaltyCalc()
+						estimatedRoyaltyCalcSpotify()
 
 						// Shuffle/Skip button
 						skipBtn, err := wd.FindElement(selenium.ByXPATH, skipBtn)
@@ -580,8 +581,8 @@ func shuffleSpotify(wd selenium.WebDriver) {
 
 							log.Printf("#(%d) Shuffle to next song.", shuffleIterationSpotify)
 
-							misplacedTrackCheck(wd) // Check if there is a misplaced track before continuing
-							favoriteTrack(wd)
+							misplacedTrackCheckSpotify(wd) // Check if there is a misplaced track before continuing
+							favoriteTrackSpotify(wd)
 						}
 					}
 				}
@@ -635,8 +636,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 		if r := recover(); r != nil {
 			fmt.Println("(initSpotifyAccountCreation) panic occured:", r)
 
-			wd.Refresh()                   // Close previous session
-			initSpotifyAccountCreation(wd) // Restart
+			wd.Refresh()
+			initSpotifyAccountCreation(wd)
 		}
 	}()
 
@@ -673,7 +674,7 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 			}
 		}
 
-		v3Solver(wd, enableV3)
+		v3SolverSpotify(wd, enableV3)
 
 		// Email
 		emailElem, err := wd.FindElement(selenium.ByID, "email")
@@ -782,7 +783,7 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 		time.Sleep(holdItTime * time.Second) // Wait
 
 		// Scroll Down
-		scrollDown(wd)
+		scrollDownSpotify(wd)
 
 		// Random Gender Selection
 		minGender := 1
@@ -829,12 +830,12 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 			_, _ = red.Println("\n\tObsurity `onetrust-consent-sdk` not removed", err)
 		} else {
 			time.Sleep(holdItTime * time.Second) // Wait
-			v2Solver(wd)
+			v2SolverSpotify(wd)
 		}
 	}
 }
 
-func v3Solver(wd selenium.WebDriver, v3Enabled bool) {
+func v3SolverSpotify(wd selenium.WebDriver, v3Enabled bool) {
 	if v3Enabled {
 		c := Captcha.New(twoCaptchaAPIKey)
 
@@ -860,11 +861,11 @@ func v3Solver(wd selenium.WebDriver, v3Enabled bool) {
 	}
 }
 
-func v2Solver(wd selenium.WebDriver) {
+func v2SolverSpotify(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
-			_, _ = red.Println("(v2Solver) Error: ", r)
+			_, _ = red.Println("(v2SolverSpotify) Error: ", r)
 
 			wd.Refresh()
 			initSpotifyAccountCreation(wd) // Restart
@@ -941,7 +942,7 @@ func v2Solver(wd selenium.WebDriver) {
 			} else {
 				log.Println("[✓](v2) ReCaptcha Callback executed:", fmt.Sprintf("___grecaptcha_cfg.clients[0]%scallback('%s')", captchaCallback, solved))
 
-				scrollDown(wd) // Justify at page bottom before form submission
+				scrollDownSpotify(wd) // Justify at page bottom before form submission
 
 				_, err = wd.ExecuteScript("document.querySelector('.Button-sc-8cs45s-0.jgLyVk').click();", nil) // Chrome Inspect > Console > Type '___grecaptcha_cfg.clients[0].' until callback discovered
 				if err != nil {
@@ -980,7 +981,7 @@ func v2Solver(wd selenium.WebDriver) {
 	}
 }
 
-func scrollDown(wd selenium.WebDriver) {
+func scrollDownSpotify(wd selenium.WebDriver) {
 	_, err := wd.ExecuteScript("window.scrollBy(0,1000);", nil)
 	if err != nil {
 		panic(fmt.Sprintf("[✕] Window Scroll Error %s", err)) // ReCaptcha Key wasn't submitted back to website.
@@ -995,14 +996,14 @@ func registrationCheckSpotify(wd selenium.WebDriver) {
 		// Ignoring the fact that this error isn't present
 		_, _ = cyan.Println("registrationCheckSpotify('2captcha.com provided valid token')") // , err) but since it isn't shown don't display since ignoring error
 
-		time.Sleep(4 * time.Second) // Wait
+		time.Sleep(7 * time.Second) // Wait
 
 		// Double check authentication
 		_, err := wd.FindElement(selenium.ByXPATH, accMenuBtn)
 		if err != nil {
 			_, _ = red.Println("registrationCheckSpotify('Detected for proxy service by Spotify'):", err)
 
-			_, _ = red.Println("Authentication Failure:", err)
+			time.Sleep(1 * time.Second) // Delay Wait
 			wd.Quit()
 
 			time.Sleep(2 * time.Minute) // Delay Wait
@@ -1052,14 +1053,14 @@ func registrationCheckSpotify(wd selenium.WebDriver) {
 	}
 }
 
-func misplacedTrackCheck(wd selenium.WebDriver) {
+func misplacedTrackCheckSpotify(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
 			_, _ = red.Println("(misplacedTrackCheck) panic occured: ", r)
 
 			wd.Refresh()
-			misplacedTrackCheck(wd)
+			misplacedTrackCheckSpotify(wd)
 		}
 	}()
 
@@ -1089,16 +1090,16 @@ func misplacedTrackCheck(wd selenium.WebDriver) {
 	}
 }
 
-func estimatedRoyaltyCalc() {
+func estimatedRoyaltyCalcSpotify() {
 	newEst := estimatedFigCount
 
 	_, _ = green.Println(fmt.Sprintf("\tEstimation of Royalties: ~$%.2f", newEst))
 }
 
-func pricePerStreamGen(x float64, y float64) string {
+func pricePerStreamGenSpotify(x float64, y float64) string {
 	// Used to get an estimated average price per stream
 
-	f := randPriceFloats(x, y, 1)
+	f := randPriceFloatsSpotify(x, y, 1)
 	s := fmt.Sprintf("%f", f)            // Convert float64[] to string
 	a := strings.Replace(s, "[", "", -1) // Trim [ from string
 	b := strings.Replace(a, "]", "", -8) // Trim ] from string
@@ -1110,7 +1111,7 @@ func pricePerStreamGen(x float64, y float64) string {
 	return d
 }
 
-func randPriceFloats(min, max float64, n int) []float64 {
+func randPriceFloatsSpotify(min, max float64, n int) []float64 {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	res := make([]float64, n)

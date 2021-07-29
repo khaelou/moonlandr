@@ -2,7 +2,7 @@
 
 It's more than just a Record Label.
 
-> Backend, written in Go. (Originally C# circa July 2019)
+> Backend, written in Go. (Originally C# in July 2019)
 > - [Selenoid](https://github.com/aerokube/selenoid) (Selenium Browser Automation)
 > - [MySQL](github.com/go-sql-driver/mysql) remote database connection. (go-mysql)
 > - [2Captcha](https://2captcha.com/) Forked API. (ReCaptcha v2 + v3 Bypass)

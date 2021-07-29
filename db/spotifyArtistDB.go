@@ -10,17 +10,17 @@ import (
 )
 
 var (
-	artistsSpotify 			[]SpotifyArtists
+	artistsSpotify []SpotifyArtists
 
-	spotifyArtistPortalId	int
-	spotifyArtistPortal		string
-	spotifyArtistTitle		string
+	spotifyArtistPortalId int
+	spotifyArtistPortal   string
+	spotifyArtistTitle    string
 )
 
 type SpotifyArtists struct {
-	id						int
-	url						string
-	title					string
+	id    int
+	url   string
+	title string
 }
 
 func SpotifyArtistConnectDB() {

@@ -64,19 +64,19 @@ var (
 	startDiscographyBtn = "//button[@class='_8e7d398e09c25b24232d92aac8a15a81-scss e8b2fe03d4e4726484b879ed8ff6f096-scss']"
 	playBtn             = "//button[@data-testid='play-button' and not(@disabled)]"
 	loadingPlayBtn      = "//button[@class='_82ba3fb528bb730b297a91f46acd37a3-scss']"
-	//pauseBtn           		= "//button[@class='_82ba3fb528bb730b297a91f46acd37a3-scss' or @title='Pause' and not(@disabled)]"
-	skipBtn         = "//button[@class='bf01b0d913b6bfffea0d4ffd7393c4af-scss']"
-	disabledSkipBtn = "//button[@class='bf01b0d913b6bfffea0d4ffd7393c4af-scss']"
-	favTrackBtn     = "//button[@class='_07bed3a434fa59aa1852a431bf2e19cb-scss control-button control-button-heart']"
-	unFavTrackBtn   = "//button[@class='_07bed3a434fa59aa1852a431bf2e19cb-scss control-button control-button-heart a65d8d62fe56eed3e660b937a9be8a93-scss']"
-	playbackTimeDiv = "//div[@class='playback-bar__progress-time _5f899d811cf206c5925f6450626fb0aa-scss']"
-	trackTitleDiv   = "//div[@class='_86f3bde5c3f38a2a37d03381c41acaf4-scss ellipsis-one-line f3fc214b257ae2f1d43d4c594a94497f-scss']"
-	artistNameDiv   = "//div[@class='f9ac49a03051d20affdc7135cfdbad3e-scss ellipsis-one-line _5f899d811cf206c5925f6450626fb0aa-scss']"
-	accMenuBtn      = "//button[@class='_3e75c7f07bdce28b37b45a5cd74ff371-scss']"
-	logoutBtn       = "//button[@class='d2a8e42f26357f2d21c027f30d93fb64-scss']"
-	isSignUpDone    = "//div[@class='ButtonInner-peijbp-0 drgjVo FacebookButton__StyledFacebookButton-sc-4xbei5-1 IsOOA']"
-	//premiumModal     			= "//div[@class='GenericModal GenericModal--animated _9503df1e6a7a900ae17aeba014203575-scss GenericModal--afterOpen']"
-	//premiumModalBtn   		= "//button @class='Button-sc-1dqy6lx-0 cLnKJb _1202545091238e5aa5b47b15ab6786fe-scss e810fe421a0b204c0de3771cf655e135-scss']"
+	skipBtn             = "//button[@class='bf01b0d913b6bfffea0d4ffd7393c4af-scss']"
+	disabledSkipBtn     = "//button[@class='bf01b0d913b6bfffea0d4ffd7393c4af-scss']"
+	favTrackBtn         = "//button[@class='_07bed3a434fa59aa1852a431bf2e19cb-scss control-button control-button-heart']"
+	unFavTrackBtn       = "//button[@class='_07bed3a434fa59aa1852a431bf2e19cb-scss control-button control-button-heart a65d8d62fe56eed3e660b937a9be8a93-scss']"
+	playbackTimeDiv     = "//div[@class='playback-bar__progress-time _5f899d811cf206c5925f6450626fb0aa-scss']"
+	trackTitleDiv       = "//div[@class='_86f3bde5c3f38a2a37d03381c41acaf4-scss ellipsis-one-line f3fc214b257ae2f1d43d4c594a94497f-scss']"
+	artistNameDiv       = "//div[@class='f9ac49a03051d20affdc7135cfdbad3e-scss ellipsis-one-line _5f899d811cf206c5925f6450626fb0aa-scss']"
+	accMenuBtn          = "//button[@class='_3e75c7f07bdce28b37b45a5cd74ff371-scss']"
+	logoutBtn           = "//button[@class='d2a8e42f26357f2d21c027f30d93fb64-scss']"
+	isSignUpDone        = "//div[@class='ButtonInner-peijbp-0 drgjVo FacebookButton__StyledFacebookButton-sc-4xbei5-1 IsOOA']"
+	//pauseBtn        = "//button[@class='_82ba3fb528bb730b297a91f46acd37a3-scss' or @title='Pause' and not(@disabled)]"
+	//premiumModal    = "//div[@class='GenericModal GenericModal--animated _9503df1e6a7a900ae17aeba014203575-scss GenericModal--afterOpen']"
+	//premiumModalBtn = "//button @class='Button-sc-1dqy6lx-0 cLnKJb _1202545091238e5aa5b47b15ab6786fe-scss e810fe421a0b204c0de3771cf655e135-scss']"
 
 	twoCaptchaAPIKey string
 	v2ReCaptchaKey   string // Pulled from 'SpotifyRegistrationURL'
@@ -103,6 +103,8 @@ func initArtistSpotify() {
 }
 
 func restartSpotify(wd selenium.WebDriver) {
+	_, _ = yellow.Println("Restarting worker ...")
+
 	wd.Quit() // Quit previous session
 	SpotifyInit()
 }
@@ -131,7 +133,7 @@ func hostBalancerSpotify() {
 func SpotifyInit() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("Error loading .env file:", err)
 	}
 
 	twoCaptchaAPIKey = os.Getenv("2CAPTCHA_API_KEY")
@@ -151,7 +153,7 @@ func SpotifyInit() {
 
 	// Check if enough accounts are in remote DB
 	if accountsInDB >= accountsRequired {
-		fmt.Println("\n\t[WebPlayer] Browser >>", "Chrome 92.0")
+		fmt.Println("\n\t[WebPlayer] Browser >>", "Chrome 91.0")
 		fmt.Println("\n\t* ]", accountsInDB, "queued accounts in remote DB.")
 
 		initArtistSpotify()                                                       // Pull credentials from remote DB
@@ -215,7 +217,7 @@ func loginProcessSpotify(id int, email, password string) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("(loginProcessSpotify) panic occured: ", r)
+			fmt.Println("(loginProcessSpotify) panic occured:", r)
 
 			wd.Quit()
 			time.Sleep(holdItTime * time.Second) // Wait
@@ -223,6 +225,8 @@ func loginProcessSpotify(id int, email, password string) {
 			loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify)
 		}
 	}()
+
+	fmt.Println("\tSessionID:", wd.SessionID()) // Selenoid UI
 
 	fmt.Println("\n\tACC ID:", id)
 	fmt.Printf("\n\tACCOUNT EMAIL: " + email)
@@ -681,12 +685,13 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("(initSpotifyAccountCreation) panic occured:", r)
+			_, _ = red.Println("(initSpotifyAccountCreation) panic occured:", r)
 
-			wd.Refresh()
-			initSpotifyAccountCreation(wd)
+			restartSpotify(wd)
 		}
 	}()
+
+	fmt.Println("\tSessionID:", wd.SessionID()) // Selenoid UI
 
 	minWait := 5
 	maxWait := 15
@@ -700,7 +705,6 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 		fmt.Println("\n\t* ]", accountsInDB, "queued accounts in remote DB. [ACCOUNT CREATOR]")
 
 		rand.Seed(time.Now().UTC().UnixNano())
-
 		min := 1
 		max := 99999999
 		randomVal := rand.Intn(max-min) + min
@@ -733,12 +737,11 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 			retrieveNavigatorWebDriver := "return document.getElementsByClassName('Type__TypeElement-sc-9snywk-0 bRyGwI')[0].innerHTML"
 			jsRetrieveNavigatorWebDriver, err := wd.ExecuteScript(retrieveNavigatorWebDriver, nil)
 			if err != nil {
-				_, _ = red.Println("Error (navigator.webdriver) :", err)
+				panic(err)
 			} else {
 				_, _ = cyan.Println("OK (navigator.webdriver):", jsRetrieveNavigatorWebDriver)
 
 				v3SolverSpotify(wd, enableV3)
-				time.Sleep(holdItTime * time.Second) // Wait
 
 				// Email
 				emailElem, err := wd.FindElement(selenium.ByID, "email")
@@ -818,6 +821,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 					log.Println("Month entered.")
 				}
 
+				time.Sleep(holdItTime * time.Second) // Wait
+
 				dayElem, err := wd.FindElement(selenium.ByID, "day")
 				if err != nil {
 					panic(err)
@@ -828,6 +833,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 				} else {
 					log.Println("Day entered.")
 				}
+
+				time.Sleep(holdItTime * time.Second) // Wait
 
 				yearElem, err := wd.FindElement(selenium.ByID, "year")
 				if err != nil {
@@ -841,6 +848,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 				}
 
 				time.Sleep(holdItTime * time.Second) // Wait
+
+				// Scroll Down
 				scrollDownSpotify(wd)
 
 				// Random Gender Selection
@@ -883,8 +892,6 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 					}
 				}
 
-				time.Sleep(holdItTime * time.Second) // Wait
-
 				_, err = wd.ExecuteScript("document.getElementById('onetrust-consent-sdk').remove();", nil)
 				if err != nil {
 					_, _ = red.Println("\n\tObsurity `onetrust-consent-sdk` not removed", err)
@@ -898,15 +905,22 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 }
 
 func v3SolverSpotify(wd selenium.WebDriver, v3Enabled bool) {
+	// Recover from panic
+	defer func() {
+		if r := recover(); r != nil {
+			_, _ = red.Println("(v3SolverSpotify) panic occured: ", r)
+
+			wd.Refresh()
+			initSpotifyAccountCreation(wd) // Restart
+		}
+	}()
+
 	if v3Enabled {
 		c := Captcha.New(twoCaptchaAPIKey)
 
 		solved, err := c.SolveRecaptchaV3(SpotifyRegistrationURL, v3ReCaptchaKey, "t", "0.3")
 		if err != nil {
-			wd.Refresh()
-			initSpotifyAccountCreation(wd)
-
-			_ = err
+			panic(err)
 		} else {
 			log.Println("[✓](v3) Solved via 2captcha.com, send back to site..") // String
 

@@ -18,7 +18,6 @@ import (
 	conditions "github.com/serge1peshcoff/selenium-go-conditions"
 	"github.com/tebeka/selenium"
 	"github.com/tebeka/selenium/chrome"
-	"github.com/tebeka/selenium/firefox"
 )
 
 var (
@@ -48,6 +47,7 @@ var (
 
 	holdItTime                = time.Duration(4)
 	accountsInDB              = 0
+	accountSigninErrorCount   = 0
 	accountCreationCount      = accountsInDB + 1
 	accountCreationErrorCount = 0
 	misplacedTrackCheckFail   = 0
@@ -74,7 +74,7 @@ var (
 	artistNameDiv   = "//div[@class='f9ac49a03051d20affdc7135cfdbad3e-scss ellipsis-one-line _5f899d811cf206c5925f6450626fb0aa-scss']"
 	accMenuBtn      = "//button[@class='_3e75c7f07bdce28b37b45a5cd74ff371-scss']"
 	logoutBtn       = "//button[@class='d2a8e42f26357f2d21c027f30d93fb64-scss']"
-	robotErrorLabel = "div[@aria-label='Error indicator']"
+	isSignUpDone    = "//div[@class='ButtonInner-peijbp-0 drgjVo FacebookButton__StyledFacebookButton-sc-4xbei5-1 IsOOA']"
 	//premiumModal     			= "//div[@class='GenericModal GenericModal--animated _9503df1e6a7a900ae17aeba014203575-scss GenericModal--afterOpen']"
 	//premiumModalBtn   		= "//button @class='Button-sc-1dqy6lx-0 cLnKJb _1202545091238e5aa5b47b15ab6786fe-scss e810fe421a0b204c0de3771cf655e135-scss']"
 
@@ -151,55 +151,56 @@ func SpotifyInit() {
 
 	// Check if enough accounts are in remote DB
 	if accountsInDB >= accountsRequired {
-		fmt.Println("\n\tBrowser >>", "Chrome 92.0")
+		fmt.Println("\n\t[WebPlayer] Browser >>", "Chrome 92.0")
 		fmt.Println("\n\t* ]", accountsInDB, "queued accounts in remote DB.")
 
 		initArtistSpotify()                                                       // Pull credentials from remote DB
 		loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify) // Authenticate Spotify account
 	} else {
-		fmt.Println("\n\tBrowser >>", "Firefox 90.0")
-		caps := selenium.Capabilities{"browserName": "firefox", "version": "90.0", "enableVNC": enableVNC}
-		firefoxCaps := firefox.Capabilities{
+		fmt.Println("\n\t[Signup] Browser >>", "Chrome 91.0")
+
+		// Connect to the WebDriver instance (Selenoid)
+		caps := selenium.Capabilities{"browserName": "chrome", "version": "91.0", "enableVNC": enableVNC, "useAutomationExtension": false}
+		chromeCaps := chrome.Capabilities{
 			Args: []string{
-				"--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4324.104 Safari/537.36",
+				"start-maximized",
+				"--disable-blink-features",
+				"--disable-blink-features=AutomationControlled",
+				"--disable-crash-reporter",
+				"--ignore-certifcate-errors",
+				"--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.53 Safari/537.36",
+			},
+			ExcludeSwitches: []string{
+				"enable-automation",
 			},
 		}
-
-		caps.AddFirefox(firefoxCaps)
+		caps.AddChrome(chromeCaps)
 
 		wd, err := selenium.NewRemote(caps, fmt.Sprintf("%s:%d/wd/hub", host, port))
 		if err != nil {
 			panic(err)
 		}
 		defer wd.Quit()
+		wd.MaximizeWindow("")
 
 		initSpotifyAccountCreation(wd)
 	}
 }
 
 func loginProcessSpotify(id int, email, password string) {
-	fmt.Println("\n\tACC ID:", id)
-	fmt.Printf("\n\tACCOUNT EMAIL: " + email)
-	fmt.Printf("\n\tACCOUNT PASSWORD: " + password + "\n")
-	fmt.Println()
-
-	// Connect to the WebDriver instance running locally. (Selenoid)
-	caps := selenium.Capabilities{"browserName": "chrome", "version": "92.0", "enableVNC": enableVNC}
+	// Connect to the WebDriver instance (Selenoid)
+	caps := selenium.Capabilities{"browserName": "chrome", "version": "91.0", "enableVNC": enableVNC, "useAutomationExtension": false}
 	chromeCaps := chrome.Capabilities{
-		//Path:  "",
 		Args: []string{
-			//"--headless", // Runs Chrome without window
-			//"--no-sandbox",
-			"--start-maximized",
+			"start-maximized",
+			"--disable-blink-features",
+			"--disable-blink-features=AutomationControlled",
 			"--disable-crash-reporter",
-			"--disable-gpu",
-			"--disable-setuid-sandbox",
-			"--disable-infobars",
-			"--window-position=0,0",
 			"--ignore-certifcate-errors",
-			"--ignore-certifcate-errors-spki-list",
-			"--proxy-server=",
-			"--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4324.104 Safari/537.36",
+			"--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.53 Safari/537.36",
+		},
+		ExcludeSwitches: []string{
+			"enable-automation",
 		},
 	}
 	caps.AddChrome(chromeCaps)
@@ -209,21 +210,29 @@ func loginProcessSpotify(id int, email, password string) {
 		panic(err)
 	}
 	defer wd.Quit()
+	wd.MaximizeWindow("") // Maximize Window regardless of Browser
+
+	// Recover from panic
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("(loginProcessSpotify) panic occured: ", r)
+
+			wd.Quit()
+			time.Sleep(holdItTime * time.Second) // Wait
+
+			loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify)
+		}
+	}()
+
+	fmt.Println("\n\tACC ID:", id)
+	fmt.Printf("\n\tACCOUNT EMAIL: " + email)
+	fmt.Printf("\n\tACCOUNT PASSWORD: " + password + "\n")
+	fmt.Println()
 
 	// Additional check verifying if the Remote DB has any accounts stored, if not create some
 	if id == 0 && email == "0" && password == "0" {
 		initSpotifyAccountCreation(wd)
 	}
-
-	// Recover from panic
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("(loginProcessSpotify): ", r)
-
-			wd.Refresh()
-			loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify)
-		}
-	}()
 
 	// Navigate to the (Login Page -> Artist Profile)
 	if err := wd.Get(ArtistProfileSpotify); err != nil {
@@ -231,11 +240,10 @@ func loginProcessSpotify(id int, email, password string) {
 	} else {
 		_, _ = yellow.Println("\tPage reached.")
 
-		if title, err := wd.Title(); err == nil {
-			fmt.Printf("\n\t%s\n\n", title)
-		} else {
+		if title, err := wd.Title(); err != nil {
 			_, _ = red.Printf("\n\tFailed to get page title: %s\n", err)
-			return
+		} else {
+			fmt.Printf("\n\t%s\n\n", title)
 		}
 	}
 
@@ -278,17 +286,30 @@ func loginProcessSpotify(id int, email, password string) {
 }
 
 func credentialCheckSpotify(wd selenium.WebDriver) {
+	// Recover from panic
+	defer func() {
+		if r := recover(); r != nil {
+			_, _ = red.Println("(credentialCheckSpotify) panic occured:", r)
+
+			wd.Quit()
+			time.Sleep(holdItTime * time.Second) // Wait
+
+			loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify)
+		}
+	}()
+
 	time.Sleep(holdItTime * time.Second) // Wait
 
 	// Check for login error
 	_, err := wd.FindElement(selenium.ByXPATH, incorrectLoginAlert)
 	if err != nil {
+		time.Sleep(holdItTime * time.Second) // Wait
+
 		// Double check credentials
 		_, err := wd.FindElement(selenium.ByXPATH, artistNameLabel)
 		if err != nil {
 			_, _ = red.Println("\n\tUser not authenticated, restart...\n", err)
-
-			restartSpotify(wd)
+			panic(err)
 		} else {
 			_, _ = cyan.Println("\n\tUser successfully authenticated!\n")
 
@@ -303,12 +324,11 @@ func credentialCheckSpotify(wd selenium.WebDriver) {
 				playerPlayBtn, err := wd.FindElement(selenium.ByXPATH, playBtn)
 				if err != nil {
 					log.Println("Play button not located:", err)
-					wd.Refresh()
-					credentialCheckSpotify(wd)
+					panic(err)
 				}
 				if err := playerPlayBtn.Click(); err != nil {
 					log.Println("Play button not clicked:", err)
-					logoutSpotify(wd)
+					panic(err)
 				} else {
 					_, _ = yellow.Println("\tFinally playing discography!\n")
 				}
@@ -324,19 +344,30 @@ func credentialCheckSpotify(wd selenium.WebDriver) {
 			}
 		}
 	} else {
-		_, _ = red.Println("\tInvalid authentication:", UserEmailSpotify)
+		_, _ = red.Println("\tInvalid Authentication:", UserEmailSpotify)
 
-		Database.DeleteSpotifyAccount(UserIdSpotify) // Remove old credentials from DB
+		accountSigninErrorCount++
 
-		// Check if enough accounts are in remote DB
-		if accountsInDB >= accountsRequired {
-			restartSpotify(wd)
-		} else {
-			if accountsInDB == 0 {
-				initSpotifyAccountCreation(wd)
-			} else {
+		if accountSigninErrorCount%4 == 0 {
+			accountSigninErrorCount = 0
+
+			Database.DeleteSpotifyAccount(UserIdSpotify) // Remove old credentials from DB
+
+			// Check if enough accounts are in remote DB
+			if accountsInDB >= accountsRequired {
 				restartSpotify(wd)
+			} else {
+				if accountsInDB == 0 {
+					initSpotifyAccountCreation(wd)
+				} else {
+					restartSpotify(wd)
+				}
 			}
+		} else {
+			wd.Quit()
+			time.Sleep(holdItTime * time.Second) // Wait
+
+			loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify)
 		}
 	}
 }
@@ -345,7 +376,7 @@ func followArtistSpotify(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("(followArtistSpotify):", r)
+			fmt.Println("(followArtistSpotify) panic occured:", r)
 
 			logoutSpotify(wd)
 		}
@@ -369,7 +400,7 @@ func favoriteTrackSpotify(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
-			_, _ = red.Println("(favoriteTrackSpotify): Like button not visible.")
+			_, _ = red.Println("(favoriteTrackSpotify) panic occured: Like button not visible.")
 			_ = r
 		}
 	}()
@@ -409,10 +440,12 @@ func startDiscographySpotify(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); nil != r {
-			_, _ = red.Println("(startDiscographySpotify):", r)
+			_, _ = red.Println("(startDiscographySpotify) panic occured:", r)
 
-			wd.Refresh()
-			startDiscographySpotify(wd)
+			wd.Quit()
+			time.Sleep(holdItTime * time.Second) // Wait
+
+			loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify)
 		}
 	}()
 
@@ -423,16 +456,18 @@ func startDiscographySpotify(wd selenium.WebDriver) {
 	if err != nil {
 		_, _ = red.Println("Pause button visible:", err)
 	} else {
+		time.Sleep(holdItTime * time.Second) // Wait
+
 		_, err = wd.ExecuteScript("document.getElementById('onetrust-consent-sdk').remove();", nil)
 		if err != nil {
-			_, _ = red.Println("\n\tObsurity `onetrust-consent-sdk` not removed", err)
+			_, _ = red.Println("\n\tObscurity `onetrust-consent-sdk` not removed", err)
 		} else {
+			time.Sleep(holdItTime * time.Second) // Delay Wait
+
 			_, err = wd.ExecuteScript("document.getElementsByClassName('contentSpacing _4c3b6e4e88112fc8ef88512cbe7521ed-scss da51a6e223c7200d373a2fd0614d7c33-scss')[0].remove();", nil)
 			if err != nil {
-				_, _ = red.Println("\n\tObsurity #2 not removed:", err)
-
-				wd.Refresh()
-				startDiscographySpotify(wd)
+				_, _ = red.Println("\n\tObscurity #2 not removed:", err)
+				panic(err)
 			} else {
 				if err := wd.Wait(conditions.ElementIsLocatedAndVisible(selenium.ByXPATH, startDiscographyBtn)); err != nil {
 					log.Println("Discography start button not located:", err)
@@ -455,8 +490,20 @@ func startDiscographySpotify(wd selenium.WebDriver) {
 }
 
 func SpotifyRepeatShuffleEvery(d time.Duration, wd selenium.WebDriver) {
+	defer func() {
+		if r := recover(); nil != r {
+			_, _ = red.Println("SpotifyRepeatShuffleEvery('Playback stand-still') panic occured:", r)
+
+			wd.Quit()
+			time.Sleep(holdItTime * time.Second) // Wait
+
+			loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify)
+		}
+	}()
+
 	if err := wd.Wait(conditions.ElementIsLocatedAndVisible(selenium.ByXPATH, artistNameDiv)); err != nil {
-		_, _ = red.Println("Playback never started:", err)
+		_, _ = red.Println("Playback stand-still:", err)
+		panic(err)
 	} else {
 		artistNameDiv, err := wd.FindElement(selenium.ByXPATH, artistNameDiv)
 		if err != nil {
@@ -490,10 +537,12 @@ func shuffleSpotify(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
-			_, _ = red.Println("(shuffleSpotify):", r)
+			_, _ = red.Println("(shuffleSpotify) panic occured:", r)
 
-			wd.Refresh()
-			startDiscographySpotify(wd)
+			wd.Quit()
+			time.Sleep(holdItTime * time.Second) // Wait
+
+			loginProcessSpotify(UserIdSpotify, UserEmailSpotify, UserPasswordSpotify)
 		}
 	}()
 
@@ -572,9 +621,7 @@ func shuffleSpotify(wd selenium.WebDriver) {
 
 							if shuffleInvalidations%3 == 0 {
 								shuffleInvalidations = 0
-
-								wd.Refresh()
-								startDiscographySpotify(wd)
+								panic(err)
 							}
 						} else {
 							shuffleIterationSpotify++
@@ -592,7 +639,7 @@ func shuffleSpotify(wd selenium.WebDriver) {
 
 	// Iteration check
 	if shuffleIterationSpotify%streamIterations == 0 {
-		_, _ = red.Println("\n\tStream limit reached, rotating..\n")
+		_, _ = red.Println("\n\tStream limit reached, rotating..")
 
 		logoutSpotify(wd)
 	}
@@ -641,6 +688,11 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 		}
 	}()
 
+	minWait := 5
+	maxWait := 15
+	holdItTime = time.Duration(rand.Intn(maxWait-minWait) + minWait)
+	fmt.Println("\n\ttime.Sleep() Duration:", holdItTime)
+
 	// Check if enough accounts are in remote DB
 	if accountsInDB >= accountsRequired {
 		restartSpotify(wd)
@@ -666,171 +718,181 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 		} else {
 			_, _ = yellow.Println("\n\tPage reached.")
 
-			if title, err := wd.Title(); err == nil {
-				fmt.Printf("\n\t%s\n\n", title)
-			} else {
+			if title, err := wd.Title(); err != nil {
 				_, _ = red.Printf("\n\tFailed to get page title: %s\n", err)
-				return
-			}
-		}
-
-		v3SolverSpotify(wd, enableV3)
-
-		// Email
-		emailElem, err := wd.FindElement(selenium.ByID, "email")
-		if err != nil {
-			panic(err)
-		}
-		if err := emailElem.Clear(); err != nil {
-			log.Println("Email wasn't cleared.")
-		} else {
-			log.Println("Email was cleared.")
-		}
-		err = emailElem.SendKeys(UserGenEmailSpotify)
-		if err != nil {
-			log.Println("Email wasn't entered.")
-		} else {
-			log.Println("Email entered. (" + UserGenEmailSpotify + ")")
-		}
-
-		time.Sleep(holdItTime * time.Second) // Wait
-
-		// Confirm Email
-		emailConfirmElem, err := wd.FindElement(selenium.ByID, "confirm")
-		if err != nil {
-			panic(err)
-		}
-		if err := emailConfirmElem.Clear(); err != nil {
-			log.Println("Confirm Email wasn't cleared.")
-		} else {
-			log.Println("Confirm Email was cleared.")
-		}
-		err = emailConfirmElem.SendKeys(UserGenEmailSpotify)
-		if err != nil {
-			log.Println("Confirm Email wasn't entered.")
-		} else {
-			log.Println("Confirm Email entered.")
-		}
-
-		time.Sleep(holdItTime * time.Second) // Wait
-
-		// Password
-		pwElem, err := wd.FindElement(selenium.ByID, "password")
-		if err != nil {
-			panic(err)
-		}
-		err = pwElem.SendKeys(UserGenPasswordSpotify)
-		if err != nil {
-			log.Println("Password wasn't entered.")
-		} else {
-			log.Println("Password entered. (" + UserGenPasswordSpotify + ")")
-		}
-
-		time.Sleep(holdItTime * time.Second) // Wait
-
-		// Display Name
-		nameElem, err := wd.FindElement(selenium.ByID, "displayname")
-		if err != nil {
-			panic(err)
-		}
-		err = nameElem.SendKeys(UserGenNameSpotify)
-		if err != nil {
-			log.Println("Display Name wasn't entered.")
-		} else {
-			log.Println("Display Name entered.")
-		}
-
-		time.Sleep(holdItTime * time.Second) // Wait
-
-		// DOB Selection
-		monthElem, err := wd.FindElement(selenium.ByID, "month")
-		if err != nil {
-			panic(err)
-		}
-		err = monthElem.SendKeys("July")
-		if err != nil {
-			log.Println("Month wasn't entered.")
-		} else {
-			log.Println("Month entered.")
-		}
-
-		time.Sleep(holdItTime * time.Second) // Wait
-
-		dayElem, err := wd.FindElement(selenium.ByID, "day")
-		if err != nil {
-			panic(err)
-		}
-		err = dayElem.SendKeys("1")
-		if err != nil {
-			log.Println("Day wasn't entered.")
-		} else {
-			log.Println("Day entered.")
-		}
-
-		time.Sleep(holdItTime * time.Second) // Wait
-
-		yearElem, err := wd.FindElement(selenium.ByID, "year")
-		if err != nil {
-			panic(err)
-		}
-		err = yearElem.SendKeys("1998")
-		if err != nil {
-			log.Println("Year wasn't entered.")
-		} else {
-			log.Println("Year entered.")
-		}
-
-		time.Sleep(holdItTime * time.Second) // Wait
-
-		// Scroll Down
-		scrollDownSpotify(wd)
-
-		// Random Gender Selection
-		minGender := 1
-		maxGender := 4
-		randomValGender := rand.Intn(maxGender-minGender) + minGender
-
-		switch randomValGender {
-		case 1:
-			_, err = wd.ExecuteScript("document.getElementById('gender_option_male').click();", nil)
-			if err != nil {
-				_, _ = red.Println("\n\tMale gender button not clicked.\n")
-				panic(err)
 			} else {
-				log.Println("Male gender button clicked.")
-			}
-		case 2:
-			_, err = wd.ExecuteScript("document.getElementById('gender_option_female').click();", nil)
-			if err != nil {
-				_, _ = red.Println("\n\tFemale gender button not clicked.\n")
-				panic(err)
-			} else {
-				log.Println("Female gender button clicked.")
-			}
-		case 3:
-			_, err = wd.ExecuteScript("document.getElementById('gender_option_nonbinary').click();", nil)
-			if err != nil {
-				_, _ = red.Println("\n\tNon-binary gender button not clicked.\n")
-				panic(err)
-			} else {
-				log.Println("Non-binary gender button clicked.")
-			}
-		default:
-			_, err = wd.ExecuteScript("document.getElementById('gender_option_nonbinary').click();", nil)
-			if err != nil {
-				_, _ = red.Println("\n\tNon-binary gender button not clicked.\n")
-				panic(err)
-			} else {
-				log.Println("Non-binary gender button clicked.")
+				fmt.Printf("\n\t%s\n\n", title)
 			}
 		}
 
-		_, err = wd.ExecuteScript("document.getElementById('onetrust-consent-sdk').remove();", nil)
+		// Bypass 'navigator.webdriver'
+		_, err := wd.ExecuteScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined}); document.getElementsByClassName('Type__TypeElement-sc-9snywk-0 bRyGwI')[0].innerHTML=navigator.webdriver;", nil)
 		if err != nil {
-			_, _ = red.Println("\n\tObsurity `onetrust-consent-sdk` not removed", err)
+			panic(err)
 		} else {
-			time.Sleep(holdItTime * time.Second) // Wait
-			v2SolverSpotify(wd)
+			retrieveNavigatorWebDriver := "return document.getElementsByClassName('Type__TypeElement-sc-9snywk-0 bRyGwI')[0].innerHTML"
+			jsRetrieveNavigatorWebDriver, err := wd.ExecuteScript(retrieveNavigatorWebDriver, nil)
+			if err != nil {
+				_, _ = red.Println("Error (navigator.webdriver) :", err)
+			} else {
+				_, _ = cyan.Println("OK (navigator.webdriver):", jsRetrieveNavigatorWebDriver)
+
+				v3SolverSpotify(wd, enableV3)
+				time.Sleep(holdItTime * time.Second) // Wait
+
+				// Email
+				emailElem, err := wd.FindElement(selenium.ByID, "email")
+				if err != nil {
+					panic(err)
+				}
+				if err := emailElem.Clear(); err != nil {
+					log.Println("Email wasn't cleared.")
+				} else {
+					log.Println("Email was cleared.")
+				}
+				err = emailElem.SendKeys(UserGenEmailSpotify)
+				if err != nil {
+					log.Println("Email wasn't entered.")
+				} else {
+					log.Println("Email entered. (" + UserGenEmailSpotify + ")")
+				}
+
+				time.Sleep(holdItTime * time.Second) // Wait
+
+				// Confirm Email
+				emailConfirmElem, err := wd.FindElement(selenium.ByID, "confirm")
+				if err != nil {
+					panic(err)
+				}
+				if err := emailConfirmElem.Clear(); err != nil {
+					log.Println("Confirm Email wasn't cleared.")
+				} else {
+					log.Println("Confirm Email was cleared.")
+				}
+				err = emailConfirmElem.SendKeys(UserGenEmailSpotify)
+				if err != nil {
+					log.Println("Confirm Email wasn't entered.")
+				} else {
+					log.Println("Confirm Email entered.")
+				}
+
+				time.Sleep(holdItTime * time.Second) // Wait
+
+				// Password
+				pwElem, err := wd.FindElement(selenium.ByID, "password")
+				if err != nil {
+					panic(err)
+				}
+				err = pwElem.SendKeys(UserGenPasswordSpotify)
+				if err != nil {
+					log.Println("Password wasn't entered.")
+				} else {
+					log.Println("Password entered. (" + UserGenPasswordSpotify + ")")
+				}
+
+				time.Sleep(holdItTime * time.Second) // Wait
+
+				// Display Name
+				nameElem, err := wd.FindElement(selenium.ByID, "displayname")
+				if err != nil {
+					panic(err)
+				}
+				err = nameElem.SendKeys(UserGenNameSpotify)
+				if err != nil {
+					log.Println("Display Name wasn't entered.")
+				} else {
+					log.Println("Display Name entered.")
+				}
+
+				time.Sleep(holdItTime * time.Second) // Wait
+
+				// DOB Selection
+				monthElem, err := wd.FindElement(selenium.ByID, "month")
+				if err != nil {
+					panic(err)
+				}
+				err = monthElem.SendKeys("July")
+				if err != nil {
+					log.Println("Month wasn't entered.")
+				} else {
+					log.Println("Month entered.")
+				}
+
+				dayElem, err := wd.FindElement(selenium.ByID, "day")
+				if err != nil {
+					panic(err)
+				}
+				err = dayElem.SendKeys("1")
+				if err != nil {
+					log.Println("Day wasn't entered.")
+				} else {
+					log.Println("Day entered.")
+				}
+
+				yearElem, err := wd.FindElement(selenium.ByID, "year")
+				if err != nil {
+					panic(err)
+				}
+				err = yearElem.SendKeys("1998")
+				if err != nil {
+					log.Println("Year wasn't entered.")
+				} else {
+					log.Println("Year entered.")
+				}
+
+				time.Sleep(holdItTime * time.Second) // Wait
+				scrollDownSpotify(wd)
+
+				// Random Gender Selection
+				minGender := 1
+				maxGender := 4
+				randomValGender := rand.Intn(maxGender-minGender) + minGender
+
+				switch randomValGender {
+				case 1:
+					_, err = wd.ExecuteScript("document.getElementById('gender_option_male').click();", nil)
+					if err != nil {
+						_, _ = red.Println("\n\tMale gender button not clicked.\n")
+						panic(err)
+					} else {
+						log.Println("Male gender button clicked.")
+					}
+				case 2:
+					_, err = wd.ExecuteScript("document.getElementById('gender_option_female').click();", nil)
+					if err != nil {
+						_, _ = red.Println("\n\tFemale gender button not clicked.\n")
+						panic(err)
+					} else {
+						log.Println("Female gender button clicked.")
+					}
+				case 3:
+					_, err = wd.ExecuteScript("document.getElementById('gender_option_nonbinary').click();", nil)
+					if err != nil {
+						_, _ = red.Println("\n\tNon-binary gender button not clicked.\n")
+						panic(err)
+					} else {
+						log.Println("Non-binary gender button clicked.")
+					}
+				default:
+					_, err = wd.ExecuteScript("document.getElementById('gender_option_nonbinary').click();", nil)
+					if err != nil {
+						_, _ = red.Println("\n\tNon-binary gender button not clicked.\n")
+						panic(err)
+					} else {
+						log.Println("Non-binary gender button clicked.")
+					}
+				}
+
+				time.Sleep(holdItTime * time.Second) // Wait
+
+				_, err = wd.ExecuteScript("document.getElementById('onetrust-consent-sdk').remove();", nil)
+				if err != nil {
+					_, _ = red.Println("\n\tObsurity `onetrust-consent-sdk` not removed", err)
+				} else {
+					time.Sleep(holdItTime * time.Second) // Wait
+					v2SolverSpotify(wd)
+				}
+			}
 		}
 	}
 }
@@ -865,7 +927,7 @@ func v2SolverSpotify(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
-			_, _ = red.Println("(v2SolverSpotify) Error: ", r)
+			_, _ = red.Println("(v2SolverSpotify) panic occured: ", r)
 
 			wd.Refresh()
 			initSpotifyAccountCreation(wd) // Restart
@@ -916,7 +978,7 @@ func v2SolverSpotify(wd selenium.WebDriver) {
 
 		// Find v2 '[0].callback' Captcha Callback, add value to a <p> tag via class name for retrieval
 		discoverV2Clients := "function findRecaptchaClients(){if(typeof(___grecaptcha_cfg)!=='undefined'){return Object.entries(___grecaptcha_cfg.clients).map(([cid,client])=>{const data={id:cid,version:cid>=10000?'V3':'V2'};const objects=Object.entries(client).filter(([_,value])=>value&&typeof value==='object');objects.forEach(([toplevelKey,toplevel])=>{const found=Object.entries(toplevel).find(([_,value])=>(value&&typeof value==='object'&&'sitekey' in value&&'size' in value));if(typeof toplevel==='object'&&toplevel instanceof HTMLElement&&toplevel.tagName==='DIV'){data.pageurl=toplevel.baseURI}if(found){const[sublevelKey,sublevel]=found;data.sitekey=sublevel.sitekey;const callbackKey=data.version==='V2'?'callback':'promise-callback';const callback=sublevel[callbackKey];if(!callback){data.callback=null;data.function=null}else{data.function=callback;const keys=[cid,toplevelKey,sublevelKey,callbackKey].map((key)=>`['${key}']`).join('');data.callback=`___grecaptcha_cfg.clients${keys}`}}});return data})[0].callback}return[]} document.getElementsByClassName('LinkContainer-sc-1t58wcv-0 fPyYIP')[0].innerHTML=findRecaptchaClients();"
-		_, err := wd.ExecuteScript(discoverV2Clients, nil) // chrome Inspect > Console > Type '___grecaptcha_cfg.clients[0].' until callback discovered
+		_, err := wd.ExecuteScript(discoverV2Clients, nil) // Chrome Inspect > Console > Type '___grecaptcha_cfg.clients[0].' until callback discovered
 		if err != nil {
 			_, _ = red.Println("Error locating v2 Callback:", err)
 		} else {
@@ -942,72 +1004,96 @@ func v2SolverSpotify(wd selenium.WebDriver) {
 			} else {
 				log.Println("[✓](v2) ReCaptcha Callback executed:", fmt.Sprintf("___grecaptcha_cfg.clients[0]%scallback('%s')", captchaCallback, solved))
 
-				scrollDownSpotify(wd) // Justify at page bottom before form submission
+				scrollDownSpotify(wd)                // Justify at page bottom before form submission
+				time.Sleep(holdItTime * time.Second) // Wait
 
-				_, err = wd.ExecuteScript("document.querySelector('.Button-sc-8cs45s-0.jgLyVk').click();", nil) // Chrome Inspect > Console > Type '___grecaptcha_cfg.clients[0].' until callback discovered
-				if err != nil {
-					_, _ = red.Println("Signup Button click failed:", err)
-
-					// Submit Form via Register button (FALLBACK)
-					registerBtn, err := wd.FindElement(selenium.ByXPATH, signupBtn)
-					if err != nil {
-						_, _ = red.Println("[✕] Signup Button wan't located (FALLBACK):", err)
-					}
-					if err := registerBtn.Click(); err != nil {
-						_, _ = red.Println("[✕] Signup Button click failed (FALLBACK):", err) // ReCaptcha Callback function wasn't executed
-						restartSpotify(wd)
-					} else {
-						log.Println("[✓] Submit button clicked! (FALLBACK)")
-
-						registrationCheckSpotify(wd)
-					}
-				} else {
-					// Submit Form via Register button (Ensures the button was really clicked upon)
-					registerBtn, err := wd.FindElement(selenium.ByXPATH, signupBtn)
-					if err != nil {
-						_, _ = red.Println("[✕] Signup Button wan't located:", err)
-					}
-					if err := registerBtn.Click(); err != nil {
-						_, _ = red.Println("[✕] Signup Button click failed:", err) // ReCaptcha Callback function wasn't executed
-						restartSpotify(wd)
-					} else {
-						log.Println("[✓] Submit button clicked! (ENSURITY)")
-
-						registrationCheckSpotify(wd)
-					}
-				}
+				injectSignupBtn(wd)
 			}
 		}
 	}
 }
 
-func scrollDownSpotify(wd selenium.WebDriver) {
-	_, err := wd.ExecuteScript("window.scrollBy(0,1000);", nil)
+func injectSignupBtn(wd selenium.WebDriver) {
+	_, err := wd.ExecuteScript("document.querySelector('.Button-sc-8cs45s-0.jgLyVk').click();", nil) // Chrome Inspect > Console > Type '___grecaptcha_cfg.clients[0].' until callback discovered
 	if err != nil {
-		panic(fmt.Sprintf("[✕] Window Scroll Error %s", err)) // ReCaptcha Key wasn't submitted back to website.
+		_, _ = red.Println("Signup Button click failed:", err)
+
+		// Submit Form via Register button (FALLBACK)
+		registerBtn, err := wd.FindElement(selenium.ByXPATH, signupBtn)
+		if err != nil {
+			_, _ = red.Println("[✕] Signup Button wan't located (FALLBACK):", err)
+		}
+		if err := registerBtn.Click(); err != nil {
+			_, _ = red.Println("[✕] Signup Button click failed (FALLBACK):", err) // ReCaptcha Callback function wasn't executed
+			restartSpotify(wd)
+		} else {
+			log.Println("[✓] Submit button clicked! (FALLBACK)")
+
+			registrationCheckSpotify(wd)
+		}
+	} else {
+		// Submit Form via Register button (Ensures the button was really clicked upon)
+		registerBtn, err := wd.FindElement(selenium.ByXPATH, signupBtn)
+		if err != nil {
+			_, _ = red.Println("[✕] Signup Button wan't located:", err)
+		}
+		if err := registerBtn.Click(); err != nil {
+			_, _ = red.Println("[✕] Signup Button click failed:", err) // ReCaptcha Callback function wasn't executed
+			restartSpotify(wd)
+		} else {
+			log.Println("[✓] Submit button clicked! (x2)")
+
+			time.Sleep(holdItTime * time.Second) // Wait
+			registrationCheckSpotify(wd)
+		}
+	}
+}
+
+func scrollDownSpotify(wd selenium.WebDriver) {
+	_, err := wd.ExecuteScript("window.scrollBy(0,1500);", nil)
+	if err != nil {
+		panic(fmt.Sprintf("[✕] Window Scroll Down Error %s", err)) // ReCaptcha Key wasn't submitted back to website.
 	} else {
 		log.Println("[✓] Scrolled down page!")
 	}
 }
 
-func registrationCheckSpotify(wd selenium.WebDriver) {
-	_, err := wd.FindElement(selenium.ByXPATH, robotErrorLabel)
+func scrollUpSpotify(wd selenium.WebDriver) {
+	_, err := wd.ExecuteScript("window.scrollBy(0,-1500);", nil)
 	if err != nil {
-		// Ignoring the fact that this error isn't present
-		_, _ = cyan.Println("registrationCheckSpotify('2captcha.com provided valid token')") // , err) but since it isn't shown don't display since ignoring error
+		panic(fmt.Sprintf("[✕] Window Scroll Up Error %s", err)) // ReCaptcha Key wasn't submitted back to website.
+	} else {
+		log.Println("[✓] Scrolled up page!")
+	}
+}
 
-		time.Sleep(7 * time.Second) // Wait
+func registrationCheckSpotify(wd selenium.WebDriver) {
+	// Recover from panic
+	defer func() {
+		if r := recover(); r != nil {
+			_, _ = red.Println("registrationCheckSpotify('Detected for proxy service by Spotify') panic occured:", r)
 
-		// Double check authentication
-		_, err := wd.FindElement(selenium.ByXPATH, accMenuBtn)
-		if err != nil {
-			_, _ = red.Println("registrationCheckSpotify('Detected for proxy service by Spotify'):", err)
-
-			time.Sleep(1 * time.Second) // Delay Wait
+			time.Sleep(1 * time.Minute) // Delay Wait
 			wd.Quit()
 
 			time.Sleep(2 * time.Minute) // Delay Wait
 			restartSpotify(wd)
+		}
+	}()
+
+	scrollUpSpotify(wd)
+	time.Sleep(holdItTime * time.Second) // Wait
+
+	_, err := wd.FindElement(selenium.ByXPATH, isSignUpDone)
+	if err != nil {
+		_, _ = cyan.Println("registrationCheckSpotify('2captcha.com provided valid token')") // , err) but since not shown don't display since ignoring error
+
+		time.Sleep(holdItTime * time.Second) // Wait
+
+		// Double check authentication
+		_, err := wd.FindElement(selenium.ByXPATH, accMenuBtn)
+		if err != nil {
+			panic(err)
 		} else {
 			_, err := wd.FindElement(selenium.ByXPATH, accMenuBtn)
 			if err != nil {
@@ -1023,7 +1109,7 @@ func registrationCheckSpotify(wd selenium.WebDriver) {
 
 				// Create required number of accounts before streaming again
 				if accountCreationCount >= accountsRequired {
-					// Check if enough accounts have been created
+					// Check if enough accounts have been created before proceeding
 					if accountsInDB >= accountsRequired {
 						restartSpotify(wd)
 					} else {
@@ -1035,20 +1121,18 @@ func registrationCheckSpotify(wd selenium.WebDriver) {
 			}
 		}
 	} else {
-		// Call this if there is an error message shown upon check
+		_, _ = red.Println("registrationCheckSpotify('Signup Visible'): 'Signup with Facebook' located")
 
 		accountCreationErrorCount++
 
-		if accountCreationErrorCount <= 3 {
+		if accountCreationErrorCount%3 == 0 {
 			accountCreationErrorCount = 0
 
-			wd.Refresh()
-			registrationCheckSpotify(wd)
+			time.Sleep(2 * time.Minute) // Delay Wait
+			restartSpotify(wd)
 		} else {
-			accountCreationErrorCount = 0
-
-			wd.Refresh()
-			initSpotifyAccountCreation(wd)
+			scrollDownSpotify(wd)
+			injectSignupBtn(wd)
 		}
 	}
 }

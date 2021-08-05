@@ -13,6 +13,7 @@ import (
 	Fetch "moonlandr/fetch"
 	Captcha "moonlandr/twocaptchaV3"
 
+	uarand "github.com/corpix/uarand"
 	"github.com/fatih/color"
 	godotenv "github.com/joho/godotenv"
 	conditions "github.com/serge1peshcoff/selenium-go-conditions"
@@ -161,6 +162,9 @@ func SpotifyInit() {
 	} else {
 		fmt.Println("\n\t[Signup] Browser >>", "Chrome 91.0")
 
+		userAgent := uarand.GetRandom()
+		fmt.Println("\t]]", userAgent)
+
 		// Connect to the WebDriver instance (Selenoid)
 		caps := selenium.Capabilities{"browserName": "chrome", "version": "91.0", "enableVNC": enableVNC, "useAutomationExtension": false}
 		chromeCaps := chrome.Capabilities{
@@ -170,13 +174,31 @@ func SpotifyInit() {
 				"--disable-blink-features=AutomationControlled",
 				"--disable-crash-reporter",
 				"--ignore-certifcate-errors",
-				"--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.53 Safari/537.36",
+				"--user-agent=" + userAgent,
 			},
 			ExcludeSwitches: []string{
 				"enable-automation",
 			},
 		}
 		caps.AddChrome(chromeCaps)
+
+		// Proxy
+		pHost := os.Getenv("PROXY_HOST")
+		pPort, _ := strconv.Atoi(os.Getenv("PROXY_PORT"))
+		caps.AddProxy(selenium.Proxy{
+			Type:     selenium.Manual,
+			HTTP:     pHost,
+			HTTPPort: pPort,
+			//HTTP: fmt.Sprintf("%s:%d", pHost, pPort),
+			//FTP:      fmt.Sprintf("%s:%d", pHost, pPort),
+			//SSL:      fmt.Sprintf("%s:%d", pHost, pPort),
+			//SOCKS:         "",
+			//SOCKSVersion:  5,
+			//SocksPort:     0000,
+			//SOCKSUsername: "username",
+			//SOCKSPassword: "password",
+			//NoProxy:  nil,
+		})
 
 		wd, err := selenium.NewRemote(caps, fmt.Sprintf("%s:%d/wd/hub", host, port))
 		if err != nil {
@@ -190,6 +212,9 @@ func SpotifyInit() {
 }
 
 func loginProcessSpotify(id int, email, password string) {
+	userAgent := uarand.GetRandom()
+	fmt.Println("\t]]", userAgent)
+
 	// Connect to the WebDriver instance (Selenoid)
 	caps := selenium.Capabilities{"browserName": "chrome", "version": "91.0", "enableVNC": enableVNC, "useAutomationExtension": false}
 	chromeCaps := chrome.Capabilities{
@@ -199,7 +224,7 @@ func loginProcessSpotify(id int, email, password string) {
 			"--disable-blink-features=AutomationControlled",
 			"--disable-crash-reporter",
 			"--ignore-certifcate-errors",
-			"--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.53 Safari/537.36",
+			"--user-agent=" + userAgent,
 		},
 		ExcludeSwitches: []string{
 			"enable-automation",
@@ -226,7 +251,7 @@ func loginProcessSpotify(id int, email, password string) {
 		}
 	}()
 
-	fmt.Println("\tSessionID:", wd.SessionID()) // Selenoid UI
+	fmt.Println("\t][ SessionID:", wd.SessionID()) // Selenoid UI
 
 	fmt.Println("\n\tACC ID:", id)
 	fmt.Printf("\n\tACCOUNT EMAIL: " + email)
@@ -464,13 +489,14 @@ func startDiscographySpotify(wd selenium.WebDriver) {
 
 		_, err = wd.ExecuteScript("document.getElementById('onetrust-consent-sdk').remove();", nil)
 		if err != nil {
-			_, _ = red.Println("\n\tObscurity `onetrust-consent-sdk` not removed", err)
+			_, _ = red.Println("\n\tObscurity `onetrust-consent-sdk` not removed!")
+			panic(err)
 		} else {
 			time.Sleep(holdItTime * time.Second) // Delay Wait
 
 			_, err = wd.ExecuteScript("document.getElementsByClassName('contentSpacing _4c3b6e4e88112fc8ef88512cbe7521ed-scss da51a6e223c7200d373a2fd0614d7c33-scss')[0].remove();", nil)
 			if err != nil {
-				_, _ = red.Println("\n\tObscurity #2 not removed:", err)
+				_, _ = red.Println("\n\tObscurity #2 not removed!")
 				panic(err)
 			} else {
 				if err := wd.Wait(conditions.ElementIsLocatedAndVisible(selenium.ByXPATH, startDiscographyBtn)); err != nil {
@@ -691,7 +717,7 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 		}
 	}()
 
-	fmt.Println("\tSessionID:", wd.SessionID()) // Selenoid UI
+	fmt.Println("\t][ SessionID:", wd.SessionID()) // Selenoid UI
 
 	minWait := 5
 	maxWait := 15
@@ -728,6 +754,8 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 				fmt.Printf("\n\t%s\n\n", title)
 			}
 		}
+
+		time.Sleep(holdItTime * time.Second) // Wait
 
 		// Bypass 'navigator.webdriver'
 		_, err := wd.ExecuteScript("Object.defineProperty(navigator, 'webdriver', {get: () => undefined}); document.getElementsByClassName('Type__TypeElement-sc-9snywk-0 bRyGwI')[0].innerHTML=navigator.webdriver;", nil)
@@ -894,7 +922,17 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 
 				_, err = wd.ExecuteScript("document.getElementById('onetrust-consent-sdk').remove();", nil)
 				if err != nil {
-					_, _ = red.Println("\n\tObsurity `onetrust-consent-sdk` not removed", err)
+					_, _ = red.Println("\n\tObscurity `onetrust-consent-sdk` not removed!")
+
+					_, err := wd.FindElement(selenium.ByXPATH, isSignUpDone)
+					if err != nil {
+						panic(err)
+					} else {
+						fmt.Println("\tProceeding to v2 ReCaptcha bypass ...")
+
+						time.Sleep(holdItTime * time.Second) // Wait
+						v2SolverSpotify(wd)
+					}
 				} else {
 					time.Sleep(holdItTime * time.Second) // Wait
 					v2SolverSpotify(wd)
@@ -1021,13 +1059,13 @@ func v2SolverSpotify(wd selenium.WebDriver) {
 				scrollDownSpotify(wd)                // Justify at page bottom before form submission
 				time.Sleep(holdItTime * time.Second) // Wait
 
-				injectSignupBtn(wd)
+				injectSignupBtnSpotify(wd)
 			}
 		}
 	}
 }
 
-func injectSignupBtn(wd selenium.WebDriver) {
+func injectSignupBtnSpotify(wd selenium.WebDriver) {
 	_, err := wd.ExecuteScript("document.querySelector('.Button-sc-8cs45s-0.jgLyVk').click();", nil) // Chrome Inspect > Console > Type '___grecaptcha_cfg.clients[0].' until callback discovered
 	if err != nil {
 		_, _ = red.Println("Signup Button click failed:", err)
@@ -1085,13 +1123,15 @@ func registrationCheckSpotify(wd selenium.WebDriver) {
 	// Recover from panic
 	defer func() {
 		if r := recover(); r != nil {
-			_, _ = red.Println("registrationCheckSpotify('Detected for proxy service by Spotify') panic occured:", r)
+			_, _ = red.Println("registrationCheckSpotify('Detected') panic occured: Spotify detects proxy or bot activity")
 
 			time.Sleep(1 * time.Minute) // Delay Wait
 			wd.Quit()
 
 			time.Sleep(2 * time.Minute) // Delay Wait
 			restartSpotify(wd)
+
+			_ = r
 		}
 	}()
 
@@ -1146,7 +1186,7 @@ func registrationCheckSpotify(wd selenium.WebDriver) {
 			restartSpotify(wd)
 		} else {
 			scrollDownSpotify(wd)
-			injectSignupBtn(wd)
+			injectSignupBtnSpotify(wd)
 		}
 	}
 }

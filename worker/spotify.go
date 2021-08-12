@@ -58,7 +58,7 @@ var (
 
 	// Simply modify attributes here if Spotify where to make HTML changes
 	incorrectLoginAlert = "//p[@class='alert alert-warning']"
-	artistNameLabel     = "//h1[@class='a12b67e576d73f97c44f1f37026223c4-scss']"
+	artistNameLabel     = "//h1[@class='oStn5XbXP5fETx83AmIj']"
 	signupBtn           = "//button[@class='Button-sc-8cs45s-0 jgLyVk']"
 	followBtn           = "//button[@class='ff6a86a966a265b5a51cf8e30c6c52f4-scss']"
 	unfollowBtn         = "//button[@class='ff6a86a966a265b5a51cf8e30c6c52f4-scss _888a8dffe06d27b161f0258c2769069e-scss']"
@@ -74,6 +74,7 @@ var (
 	artistNameDiv       = "//div[@class='f9ac49a03051d20affdc7135cfdbad3e-scss ellipsis-one-line _5f899d811cf206c5925f6450626fb0aa-scss']"
 	accMenuBtn          = "//button[@class='_3e75c7f07bdce28b37b45a5cd74ff371-scss']"
 	logoutBtn           = "//button[@class='d2a8e42f26357f2d21c027f30d93fb64-scss']"
+	signupBtnSpotify	= "//div[@class='ButtonInner-peijbp-0 hlHQCm encore-bright-accent-set SignupButton___StyledButtonPrimary-cjcq5h-1 gzFCtx']"
 	isSignUpDone        = "//div[@class='ButtonInner-peijbp-0 drgjVo FacebookButton__StyledFacebookButton-sc-4xbei5-1 IsOOA']"
 	//pauseBtn        = "//button[@class='_82ba3fb528bb730b297a91f46acd37a3-scss' or @title='Pause' and not(@disabled)]"
 	//premiumModal    = "//div[@class='GenericModal GenericModal--animated _9503df1e6a7a900ae17aeba014203575-scss GenericModal--afterOpen']"
@@ -162,8 +163,14 @@ func SpotifyInit() {
 	} else {
 		fmt.Println("\n\t[Signup] Browser >>", "Chrome 91.0")
 
+		// User-Agent Random Generator
 		userAgent := uarand.GetRandom()
 		fmt.Println("\t]]", userAgent)
+
+		// Proxy Credential Retrieval
+		pHost := os.Getenv("PROXY_HOST")
+		pPort, _ := strconv.Atoi(os.Getenv("PROXY_PORT"))
+		proxyAddr := fmt.Sprintf("%s:%d", pHost, pPort)
 
 		// Connect to the WebDriver instance (Selenoid)
 		caps := selenium.Capabilities{"browserName": "chrome", "version": "91.0", "enableVNC": enableVNC, "useAutomationExtension": false}
@@ -174,6 +181,7 @@ func SpotifyInit() {
 				"--disable-blink-features=AutomationControlled",
 				"--disable-crash-reporter",
 				"--ignore-certifcate-errors",
+				"--proxy-server=" + proxyAddr,
 				"--user-agent=" + userAgent,
 			},
 			ExcludeSwitches: []string{
@@ -182,23 +190,7 @@ func SpotifyInit() {
 		}
 		caps.AddChrome(chromeCaps)
 
-		// Proxy
-		pHost := os.Getenv("PROXY_HOST")
-		pPort, _ := strconv.Atoi(os.Getenv("PROXY_PORT"))
-		caps.AddProxy(selenium.Proxy{
-			Type:     selenium.Manual,
-			HTTP:     pHost,
-			HTTPPort: pPort,
-			//HTTP: fmt.Sprintf("%s:%d", pHost, pPort),
-			//FTP:      fmt.Sprintf("%s:%d", pHost, pPort),
-			//SSL:      fmt.Sprintf("%s:%d", pHost, pPort),
-			//SOCKS:         "",
-			//SOCKSVersion:  5,
-			//SocksPort:     0000,
-			//SOCKSUsername: "username",
-			//SOCKSPassword: "password",
-			//NoProxy:  nil,
-		})
+		fmt.Println(fmt.Sprintf("\tRotating Proxy: %s", proxyAddr))
 
 		wd, err := selenium.NewRemote(caps, fmt.Sprintf("%s:%d/wd/hub", host, port))
 		if err != nil {
@@ -489,14 +481,14 @@ func startDiscographySpotify(wd selenium.WebDriver) {
 
 		_, err = wd.ExecuteScript("document.getElementById('onetrust-consent-sdk').remove();", nil)
 		if err != nil {
-			_, _ = red.Println("\n\tObscurity `onetrust-consent-sdk` not removed!")
+			_, _ = red.Println("\tObscurity `onetrust-consent-sdk` not removed!")
 			panic(err)
 		} else {
 			time.Sleep(holdItTime * time.Second) // Delay Wait
 
 			_, err = wd.ExecuteScript("document.getElementsByClassName('contentSpacing _4c3b6e4e88112fc8ef88512cbe7521ed-scss da51a6e223c7200d373a2fd0614d7c33-scss')[0].remove();", nil)
 			if err != nil {
-				_, _ = red.Println("\n\tObscurity #2 not removed!")
+				_, _ = red.Println("\tObscurity #2 not removed!")
 				panic(err)
 			} else {
 				if err := wd.Wait(conditions.ElementIsLocatedAndVisible(selenium.ByXPATH, startDiscographyBtn)); err != nil {
@@ -922,9 +914,9 @@ func initSpotifyAccountCreation(wd selenium.WebDriver) {
 
 				_, err = wd.ExecuteScript("document.getElementById('onetrust-consent-sdk').remove();", nil)
 				if err != nil {
-					_, _ = red.Println("\n\tObscurity `onetrust-consent-sdk` not removed!")
+					_, _ = red.Println("\tObscurity `onetrust-consent-sdk` not removed ?!")
 
-					_, err := wd.FindElement(selenium.ByXPATH, isSignUpDone)
+					_, err := wd.FindElement(selenium.ByXPATH, signupBtnSpotify)
 					if err != nil {
 						panic(err)
 					} else {
@@ -1128,7 +1120,7 @@ func registrationCheckSpotify(wd selenium.WebDriver) {
 			time.Sleep(1 * time.Minute) // Delay Wait
 			wd.Quit()
 
-			time.Sleep(2 * time.Minute) // Delay Wait
+			time.Sleep(1 * time.Minute) // Delay Wait
 			restartSpotify(wd)
 
 			_ = r
